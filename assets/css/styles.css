@@ -28,8 +28,8 @@ h2{font-size:clamp(26px,4vw,40px);letter-spacing:.5px;margin-bottom:14px;text-al
 .nav__toggle{display:none;background:none;border:0;color:#fff;font-size:24px;cursor:pointer}
 
 /* HERO */
-.hero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;background:linear-gradient(135deg,#0b2a33,#1f8a99 120%);overflow:hidden}
-.hero__overlay{position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,rgba(0,0,0,.15),rgba(0,0,0,.55))}
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;background:#0b2a33 url(../media/exterior.jpg) center/cover no-repeat;overflow:hidden}
+.hero__overlay{position:absolute;inset:0;background:radial-gradient(circle at 50% 35%,rgba(0,0,0,.20),rgba(0,0,0,.62))}
 .hero__content{position:relative;z-index:2;padding:0 22px}
 .hero h1{font-size:clamp(48px,11vw,120px);letter-spacing:4px;line-height:1;margin:10px 0}
 .hero h1 span{color:var(--gold2)}
