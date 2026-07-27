@@ -103,6 +103,7 @@
     var input = document.getElementById('plChatInput');
     // DEPLOY STEP: paste your Cloudflare Worker URL here (holds the HY3 key server-side).
     var WORKER_URL = "https://prettylucky-chat.YOUR-SUBDOMAIN.workers.dev";
+    var SESSION_ID = "pl-" + Date.now() + "-" + Math.random().toString(36).slice(2,7);
     var history = [];
 
     function bubble(text, who){
@@ -121,14 +122,23 @@
       }
       input.focus();
     }
+    var hadUser = false;
+    function finalizeChat(){
+      if(!hadUser || !WORKER_URL || WORKER_URL.indexOf('YOUR-SUBDOMAIN') > -1) return;
+      try {
+        navigator.sendBeacon(WORKER_URL, new Blob([JSON.stringify({ messages: history, sessionId: SESSION_ID, finalize: true })], {type:'application/json'}));
+      } catch(e){}
+    }
     if(toggle) toggle.addEventListener('click', openPanel);
-    if(close) close.addEventListener('click', function(){ panel.hidden = true; });
+    if(close) close.addEventListener('click', function(){ panel.hidden = true; finalizeChat(); });
+    window.addEventListener('beforeunload', finalizeChat);
 
     if(form){
       form.addEventListener('submit', function(ev){
         ev.preventDefault();
         var text = (input.value || '').trim();
         if(!text) return;
+        hadUser = true;
         bubble(text, 'user');
         history.push({ role:'user', content:text });
         input.value = '';
@@ -136,7 +146,7 @@
         fetch(WORKER_URL, {
           method:'POST',
           headers:{ 'Content-Type':'application/json' },
-          body: JSON.stringify({ messages: history })
+          body: JSON.stringify({ messages: history, sessionId: SESSION_ID })
         }).then(function(r){ return r.json(); }).then(function(d){
           log.removeChild(typing);
           var reply = d.reply || "Wendy will be right with you — email wendyjbelanger@gmail.com or call 701-595-2920.";
