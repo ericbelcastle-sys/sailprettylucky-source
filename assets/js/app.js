@@ -93,4 +93,60 @@
       form.reset();
     });
   }
+  /* ---- chat assistant client ---- */
+  (function(){
+    var toggle = document.getElementById('plChatToggle');
+    var panel = document.getElementById('plChatPanel');
+    var close = document.getElementById('plChatClose');
+    var log = document.getElementById('plChatLog');
+    var form = document.getElementById('plChatForm');
+    var input = document.getElementById('plChatInput');
+    // DEPLOY STEP: paste your Cloudflare Worker URL here (holds the HY3 key server-side).
+    var WORKER_URL = "https://prettylucky-chat.YOUR-SUBDOMAIN.workers.dev";
+    var history = [];
+
+    function bubble(text, who){
+      var m = document.createElement('div');
+      m.className = 'chat__msg chat__msg--' + who;
+      m.textContent = text;
+      log.appendChild(m);
+      log.scrollTop = log.scrollHeight;
+      return m;
+    }
+    function openPanel(){
+      panel.hidden = false;
+      if(!log.dataset.greeted){
+        bubble("Ahoy! 🌊 I'm the Pretty Lucky assistant. Thinking about a crewed charter in the Virgin Islands? Tell me your dates, group size, or the occasion and I'll help you start planning — Wendy follows up personally.", 'bot');
+        log.dataset.greeted = "1";
+      }
+      input.focus();
+    }
+    if(toggle) toggle.addEventListener('click', openPanel);
+    if(close) close.addEventListener('click', function(){ panel.hidden = true; });
+
+    if(form){
+      form.addEventListener('submit', function(ev){
+        ev.preventDefault();
+        var text = (input.value || '').trim();
+        if(!text) return;
+        bubble(text, 'user');
+        history.push({ role:'user', content:text });
+        input.value = '';
+        var typing = bubble('Wendy’s assistant is typing…', 'typing');
+        fetch(WORKER_URL, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ messages: history })
+        }).then(function(r){ return r.json(); }).then(function(d){
+          log.removeChild(typing);
+          var reply = d.reply || "Wendy will be right with you — email wendyjbelanger@gmail.com or call 701-595-2920.";
+          bubble(reply, 'bot');
+          history.push({ role:'assistant', content: reply });
+        }).catch(function(){
+          log.removeChild(typing);
+          bubble("Our chat is taking a breather — please email wendyjbelanger@gmail.com or call Wendy at 701-595-2920 and she'll help right away.", 'bot');
+        });
+      });
+    }
+  })();
 })();

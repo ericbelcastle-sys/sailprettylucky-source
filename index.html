@@ -238,6 +238,24 @@
 </div>
 </footer>
 
-<script src="assets/js/app.js?v=4" defer></script>
+<!-- ============ CHAT ASSISTANT ============ -->
+<div id="plChat" class="chat" aria-hidden="false">
+  <button id="plChatToggle" class="chat__bubble" aria-label="Chat with Pretty Lucky">💬</button>
+  <div id="plChatPanel" class="chat__panel" hidden>
+    <div class="chat__head">
+      <div class="chat__title">Sail Pretty Lucky <span class="chat__online">●</span></div>
+      <div class="chat__sub">Ask about your charter — Wendy follows up personally</div>
+      <button id="plChatClose" class="chat__x" aria-label="Close">×</button>
+    </div>
+    <div id="plChatLog" class="chat__log"></div>
+    <form id="plChatForm" class="chat__form">
+      <input id="plChatInput" class="chat__input" type="text" placeholder="When are you thinking of sailing?" autocomplete="off" />
+      <button class="chat__send" type="submit" aria-label="Send">➤</button>
+    </form>
+    <div class="chat__foot">Rates $25k–$30k/wk · Wendy 701-595-2920</div>
+  </div>
+</div>
+
+<script src="assets/js/app.js?v=5" defer></script>
 </body>
 </html>
