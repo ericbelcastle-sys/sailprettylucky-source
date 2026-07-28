@@ -7,6 +7,9 @@
 (function(){
   "use strict";
 
+  // DEPLOY STEP: paste your Cloudflare Worker URL here (powers BOTH chat + inquiry email).
+  var CHAT_WORKER_URL = "https://prettylucky-chat.YOUR-SUBDOMAIN.workers.dev";
+
   /* ---- mobile nav ---- */
   var toggle = document.getElementById('navToggle');
   var links = document.getElementById('navLinks');
@@ -80,17 +83,41 @@
     form.addEventListener('submit', function(ev){
       ev.preventDefault();
       var data = new FormData(form);
-      var name = data.get('name')||'';
-      var email = data.get('email')||'';
-      var start = data.get('start')||'';
-      var guests = data.get('guests')||'';
-      var msg = data.get('message')||'';
-      var subject = encodeURIComponent('SY Pretty Lucky charter inquiry — ' + start);
-      var body = encodeURIComponent('Name: '+name+'\nEmail: '+email+'\nStart: '+start+'\nGuests: '+guests+'\n\n'+msg);
-      // Open mail client (owner receives). Falls back to on-page confirmation.
-      window.location.href = 'mailto:charter@sailprettylucky.com?subject='+subject+'&body='+body;
-      status.textContent = 'Opening your email app to send the inquiry… if nothing opened, email charter@sailprettylucky.com.';
-      form.reset();
+      var name = (data.get('name')||'').toString().trim();
+      var email = (data.get('email')||'').toString().trim();
+      var start = (data.get('start')||'').toString().trim();
+      var guests = (data.get('guests')||'').toString().trim();
+      var msg = (data.get('message')||'').toString().trim();
+      if(!name || !email){
+        status.textContent = 'Please add your name and email so we can reach you.';
+        return;
+      }
+      // If the Worker is deployed, send server-side (lands in OUR inbox, not theirs).
+      var deployed = CHAT_WORKER_URL && CHAT_WORKER_URL.indexOf('YOUR-SUBDOMAIN') === -1;
+      if(!deployed){
+        // Graceful fallback until Worker is deployed: open mail client.
+        var subject = encodeURIComponent('SY Pretty Lucky charter inquiry — ' + start);
+        var body = encodeURIComponent('Name: '+name+'\nEmail: '+email+'\nStart: '+start+'\nGuests: '+guests+'\n\n'+msg);
+        window.location.href = 'mailto:charter@sailprettylucky.com?subject='+subject+'&body='+body;
+        status.textContent = 'Opening your email app to send the inquiry… if nothing opened, email charter@sailprettylucky.com.';
+        form.reset();
+        return;
+      }
+      status.textContent = 'Sending your inquiry…';
+      fetch(CHAT_WORKER_URL + '/inquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, email: email, start: start, guests: guests, message: msg })
+      }).then(function(r){ return r.json(); }).then(function(d){
+        if(d && d.ok){
+          status.textContent = '✅ Inquiry sent! Wendy will reply within 24 hours.';
+          form.reset();
+        } else {
+          status.textContent = 'Something went wrong — please email charter@sailprettylucky.com directly.';
+        }
+      }).catch(function(){
+        status.textContent = 'Network error — please email charter@sailprettylucky.com directly.';
+      });
     });
   }
   /* ---- chat assistant client ---- */
@@ -101,8 +128,8 @@
     var log = document.getElementById('plChatLog');
     var form = document.getElementById('plChatForm');
     var input = document.getElementById('plChatInput');
-    // DEPLOY STEP: paste your Cloudflare Worker URL here (holds the HY3 key server-side).
-    var WORKER_URL = "https://prettylucky-chat.YOUR-SUBDOMAIN.workers.dev";
+    // Uses the single deployed Worker URL (set at top of this file).
+    var WORKER_URL = CHAT_WORKER_URL;
     var SESSION_ID = "pl-" + Date.now() + "-" + Math.random().toString(36).slice(2,7);
     var history = [];
 
@@ -149,12 +176,12 @@
           body: JSON.stringify({ messages: history, sessionId: SESSION_ID })
         }).then(function(r){ return r.json(); }).then(function(d){
           log.removeChild(typing);
-          var reply = d.reply || "Wendy will be right with you — email wendyjbelanger@gmail.com or call 701-595-2920.";
+          var reply = d.reply || "Wendy will be right with you — email charter@sailprettylucky.com or call 701-595-2920.";
           bubble(reply, 'bot');
           history.push({ role:'assistant', content: reply });
         }).catch(function(){
           log.removeChild(typing);
-          bubble("Our chat is taking a breather — please email wendyjbelanger@gmail.com or call Wendy at 701-595-2920 and she'll help right away.", 'bot');
+          bubble("Our chat is taking a breather — please email charter@sailprettylucky.com or call Wendy at 701-595-2920 and she'll help right away.", 'bot');
         });
       });
     }
