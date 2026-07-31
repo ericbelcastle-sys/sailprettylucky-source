@@ -7,8 +7,8 @@
 (function(){
   "use strict";
 
-  // DEPLOY STEP: paste your Cloudflare Worker URL here (powers BOTH chat + inquiry email).
-  var CHAT_WORKER_URL = "https://prettylucky-chat.YOUR-SUBDOMAIN.workers.dev";
+  // Chat assistant: calls OpenRouter directly from the browser (no backend needed).
+  // Uses the free tencent/hy3 model. Key is in assets/js/chat-config.js.
 
   /* ---- mobile nav ---- */
   var toggle = document.getElementById('navToggle');
@@ -92,8 +92,8 @@
         status.textContent = 'Please add your name and email so we can reach you.';
         return;
       }
-      // If the Worker is deployed, send server-side (lands in OUR inbox, not theirs).
-      var deployed = CHAT_WORKER_URL && CHAT_WORKER_URL.indexOf('YOUR-SUBDOMAIN') === -1;
+      // Inquiry form uses mailto (opens the visitor's email app to reach us).
+      var deployed = false;
       if(!deployed){
         // Graceful fallback until Worker is deployed: open mail client.
         var subject = encodeURIComponent('SY Pretty Lucky charter inquiry — ' + start);
@@ -128,8 +128,8 @@
     var log = document.getElementById('plChatLog');
     var form = document.getElementById('plChatForm');
     var input = document.getElementById('plChatInput');
-    // Uses the single deployed Worker URL (set at top of this file).
-    var WORKER_URL = CHAT_WORKER_URL;
+    // Worker URL (Cloudflare). The OpenRouter key lives ONLY in the Worker as a secret.
+    var CHAT_WORKER_URL = "https://prettylucky-chat.YOUR-SUBDOMAIN.workers.dev";
     var SESSION_ID = "pl-" + Date.now() + "-" + Math.random().toString(36).slice(2,7);
     var history = [];
 
@@ -144,21 +144,14 @@
     function openPanel(){
       panel.hidden = false;
       if(!log.dataset.greeted){
-        bubble("Ahoy! 🌊 I'm the Pretty Lucky assistant. Thinking about a crewed charter in the Virgin Islands? Tell me your dates, group size, or the occasion and I'll help you start planning — Wendy follows up personally.", 'bot');
+        bubble("Ahoy! 🌊 I'm the Pretty Lucky assistant. Thinking about a crewed charter in the Virgin Islands — or just want to chat? Tell me a little about your trip and I'll pass it to Wendy.", 'bot');
         log.dataset.greeted = "1";
       }
       input.focus();
     }
     var hadUser = false;
-    function finalizeChat(){
-      if(!hadUser || !WORKER_URL || WORKER_URL.indexOf('YOUR-SUBDOMAIN') > -1) return;
-      try {
-        navigator.sendBeacon(WORKER_URL, new Blob([JSON.stringify({ messages: history, sessionId: SESSION_ID, finalize: true })], {type:'application/json'}));
-      } catch(e){}
-    }
     if(toggle) toggle.addEventListener('click', openPanel);
-    if(close) close.addEventListener('click', function(){ panel.hidden = true; finalizeChat(); });
-    window.addEventListener('beforeunload', finalizeChat);
+    if(close) close.addEventListener('click', function(){ panel.hidden = true; });
 
     if(form){
       form.addEventListener('submit', function(ev){
@@ -170,13 +163,20 @@
         history.push({ role:'user', content:text });
         input.value = '';
         var typing = bubble('Wendy’s assistant is typing…', 'typing');
-        fetch(WORKER_URL, {
+
+        if(!CHAT_WORKER_URL || CHAT_WORKER_URL.indexOf('YOUR-SUBDOMAIN') !== -1){
+          log.removeChild(typing);
+          bubble("Chat isn't quite set up yet — please email sailprettylucky@gmail.com and Wendy will help right away.", 'bot');
+          return;
+        }
+
+        fetch(CHAT_WORKER_URL, {
           method:'POST',
           headers:{ 'Content-Type':'application/json' },
-          body: JSON.stringify({ messages: history, sessionId: SESSION_ID })
+          body: JSON.stringify({ sessionId: SESSION_ID, finalize:false, messages: history.slice(-12) })
         }).then(function(r){ return r.json(); }).then(function(d){
           log.removeChild(typing);
-          var reply = d.reply || "Wendy will be right with you — email sailprettylucky@gmail.com.";
+          var reply = d.reply || "Wendy will be right with you — please email sailprettylucky@gmail.com and she'll help right away.";
           bubble(reply, 'bot');
           history.push({ role:'assistant', content: reply });
         }).catch(function(){
