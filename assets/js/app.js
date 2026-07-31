@@ -176,12 +176,12 @@
           body: JSON.stringify({ messages: history, sessionId: SESSION_ID })
         }).then(function(r){ return r.json(); }).then(function(d){
           log.removeChild(typing);
-          var reply = d.reply || "Wendy will be right with you — email sailprettylucky@gmail.com or call 701-595-2920.";
+          var reply = d.reply || "Wendy will be right with you — email sailprettylucky@gmail.com.";
           bubble(reply, 'bot');
           history.push({ role:'assistant', content: reply });
         }).catch(function(){
           log.removeChild(typing);
-          bubble("Our chat is taking a breather — please email sailprettylucky@gmail.com or call Wendy at 701-595-2920 and she'll help right away.", 'bot');
+          bubble("Our chat is taking a breather — please email sailprettylucky@gmail.com and she'll help right away.", 'bot');
         });
       });
     }
