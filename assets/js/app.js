@@ -173,7 +173,7 @@
         fetch(CHAT_WORKER_URL, {
           method:'POST',
           headers:{ 'Content-Type':'application/json' },
-          body: JSON.stringify({ sessionId: SESSION_ID, finalize:false, messages: history.slice(-12) })
+          body: JSON.stringify({ messages: history.slice(-12) })
         }).then(function(r){ return r.json(); }).then(function(d){
           log.removeChild(typing);
           var reply = d.reply || "Wendy will be right with you — please email sailprettylucky@gmail.com and she'll help right away.";
