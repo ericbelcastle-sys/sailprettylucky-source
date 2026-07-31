@@ -97,9 +97,9 @@
       if(!deployed){
         // Graceful fallback until Worker is deployed: open mail client.
         var subject = encodeURIComponent('SY Pretty Lucky charter inquiry — ' + start);
-        var body = encodeURIComponent('Name: '+name+'\nEmail: '+email+'\nStart: '+start+'\nGuests: '+guests+'\n\n'+msg);
-        window.location.href = 'mailto:charter@sailprettylucky.com?subject='+subject+'&body='+body;
-        status.textContent = 'Opening your email app to send the inquiry… if nothing opened, email charter@sailprettylucky.com.';
+        var body = encodeURIComponent('Name: '+name+'\\nEmail: '+email+'\\nStart: '+start+'\\nGuests: '+guests+'\\n\\n'+msg);
+        window.location.href = 'mailto:sailprettylucky@gmail.com?subject='+subject+'&body='+body;
+        status.textContent = 'Opening your email app to send the inquiry… if nothing opened, email sailprettylucky@gmail.com.';
         form.reset();
         return;
       }
@@ -113,10 +113,10 @@
           status.textContent = '✅ Inquiry sent! Wendy will reply within 24 hours.';
           form.reset();
         } else {
-          status.textContent = 'Something went wrong — please email charter@sailprettylucky.com directly.';
+          status.textContent = 'Something went wrong — please email sailprettylucky@gmail.com directly.';
         }
       }).catch(function(){
-        status.textContent = 'Network error — please email charter@sailprettylucky.com directly.';
+        status.textContent = 'Network error — please email sailprettylucky@gmail.com directly.';
       });
     });
   }
@@ -176,12 +176,12 @@
           body: JSON.stringify({ messages: history, sessionId: SESSION_ID })
         }).then(function(r){ return r.json(); }).then(function(d){
           log.removeChild(typing);
-          var reply = d.reply || "Wendy will be right with you — email charter@sailprettylucky.com or call 701-595-2920.";
+          var reply = d.reply || "Wendy will be right with you — email sailprettylucky@gmail.com or call 701-595-2920.";
           bubble(reply, 'bot');
           history.push({ role:'assistant', content: reply });
         }).catch(function(){
           log.removeChild(typing);
-          bubble("Our chat is taking a breather — please email charter@sailprettylucky.com or call Wendy at 701-595-2920 and she'll help right away.", 'bot');
+          bubble("Our chat is taking a breather — please email sailprettylucky@gmail.com or call Wendy at 701-595-2920 and she'll help right away.", 'bot');
         });
       });
     }
