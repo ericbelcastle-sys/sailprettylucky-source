@@ -121,6 +121,10 @@ h2{font-size:clamp(26px,4vw,40px);letter-spacing:.5px;margin-bottom:14px;text-al
 .bubble{position:absolute;bottom:-40px;border-radius:50%;opacity:0;animation-name:rise;animation-timing-function:ease-in;animation-iteration-count:infinite;background:radial-gradient(circle at 30% 30%, #fff 0%, #ff8ec4 35%, #ff4fa3 70%, #e23a8c 100%);box-shadow:0 0 8px rgba(255,79,163,.5)}
 @keyframes rise{0%{transform:translateY(0) scale(.6);opacity:0}10%{opacity:.9}50%{transform:translateY(-52vh) translateX(14px) scale(1)}90%{opacity:.7}100%{transform:translateY(-104vh) translateX(-10px) scale(1.1);opacity:0}}
 @media (prefers-reduced-motion: reduce){.bubble{animation:none;display:none}}
+/* mermaid at the bottom of the screen — bubbles rise from her */
+.mermaid-emitter{position:fixed;left:50%;bottom:-6px;transform:translateX(-50%);z-index:0;width:min(420px,62vw);height:auto;opacity:.9;pointer-events:none;filter:drop-shadow(0 0 16px rgba(255,79,163,.45))}
+.mermaid-emitter .bubble{position:absolute;left:50%;bottom:46%;animation-name:rise-from-mermaid;animation-timing-function:ease-out}
+@keyframes rise-from-mermaid{0%{transform:translate(-50%,0) scale(.4);opacity:0}15%{opacity:.95}70%{opacity:.7}100%{transform:translate(calc(-50% + var(--dx,20px)),-78vh) scale(1.15);opacity:0}}
 
 @media(max-width:720px){
   .nav__links{position:fixed;top:58px;right:0;background:rgba(11,31,42,.97);flex-direction:column;width:200px;padding:18px;gap:14px;transform:translateX(110%);transition:transform .25s}
