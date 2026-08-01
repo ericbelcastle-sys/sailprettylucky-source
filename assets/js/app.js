@@ -88,36 +88,18 @@
       var start = (data.get('start')||'').toString().trim();
       var guests = (data.get('guests')||'').toString().trim();
       var msg = (data.get('message')||'').toString().trim();
-      if(!name || !email){
-        status.textContent = 'Please add your name and email so we can reach you.';
+      if(!name){
+        status.textContent = 'Please add your name so we know who to say hi to.';
         return;
       }
       // Inquiry form uses mailto (opens the visitor's email app to reach us).
-      var deployed = false;
-      if(!deployed){
-        // Graceful fallback until Worker is deployed: open mail client.
-        var subject = encodeURIComponent('SY Pretty Lucky charter inquiry — ' + start);
-        var body = encodeURIComponent('Name: '+name+'\\nEmail: '+email+'\\nStart: '+start+'\\nGuests: '+guests+'\\n\\n'+msg);
-        window.location.href = 'mailto:sailprettylucky@gmail.com?subject='+subject+'&body='+body;
-        status.textContent = 'Opening your email app to send the inquiry… if nothing opened, email sailprettylucky@gmail.com.';
-        form.reset();
-        return;
-      }
-      status.textContent = 'Sending your inquiry…';
-      fetch(CHAT_WORKER_URL + '/inquiry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name, email: email, start: start, guests: guests, message: msg })
-      }).then(function(r){ return r.json(); }).then(function(d){
-        if(d && d.ok){
-          status.textContent = '✅ Inquiry sent! Wendy will reply within 24 hours.';
-          form.reset();
-        } else {
-          status.textContent = 'Something went wrong — please email sailprettylucky@gmail.com directly.';
-        }
-      }).catch(function(){
-        status.textContent = 'Network error — please email sailprettylucky@gmail.com directly.';
-      });
+      // Email is OPTIONAL — if blank, their own mail client supplies the reply-to.
+      var subject = encodeURIComponent('SY Pretty Lucky charter inquiry — ' + (start || 'open dates'));
+      var body = encodeURIComponent('Name: '+name+'\\n'+(email ? 'Email: '+email+'\\n' : '')+'Start: '+start+'\\nGuests: '+guests+'\\n\\n'+msg);
+      window.location.href = 'mailto:sailprettylucky@gmail.com?subject='+subject+'&body='+body;
+      status.textContent = 'Opening your email app to send the inquiry… if nothing opened, email sailprettylucky@gmail.com.' + (email ? '' : ' (No email entered — your mail app will use your own address.)');
+      form.reset();
+      return;
     });
   }
   /* ---- chat assistant client ---- */
