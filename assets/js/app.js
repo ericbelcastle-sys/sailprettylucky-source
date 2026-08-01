@@ -92,13 +92,29 @@
         status.textContent = 'Please add your name so we know who to say hi to.';
         return;
       }
-      // Inquiry form uses mailto (opens the visitor's email app to reach us).
-      // Email is OPTIONAL — if blank, their own mail client supplies the reply-to.
-      var subject = encodeURIComponent('SY Pretty Lucky charter inquiry — ' + (start || 'open dates'));
-      var body = encodeURIComponent('Name: '+name+'\\n'+(email ? 'Email: '+email+'\\n' : '')+'Start: '+start+'\\nGuests: '+guests+'\\n\\n'+msg);
-      window.location.href = 'mailto:sailprettylucky@gmail.com?subject='+subject+'&body='+body;
-      status.textContent = 'Opening your email app to send the inquiry… if nothing opened, email sailprettylucky@gmail.com.' + (email ? '' : ' (No email entered — your mail app will use your own address.)');
-      form.reset();
+      // Inquiry: send to Worker -> Telegram (captures even without visitor email).
+      // Email is OPTIONAL. Falls back to mailto if the Worker call fails.
+      status.textContent = 'Sending your inquiry…';
+      fetch(CHAT_WORKER_URL + '/inquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, email: email, start: start, guests: guests, message: msg })
+      }).then(function(r){ return r.json(); }).then(function(d){
+        if(d && d.ok){
+          status.textContent = '✅ Inquiry sent! Wendy will reply within 24 hours.';
+          form.reset();
+        } else {
+          fallbackMailto();
+        }
+      }).catch(function(){ fallbackMailto(); });
+
+      function fallbackMailto(){
+        var subject = encodeURIComponent('SY Pretty Lucky charter inquiry — ' + (start || 'open dates'));
+        var body = encodeURIComponent('Name: '+name+'\\n'+(email ? 'Email: '+email+'\\n' : '')+'Start: '+start+'\\nGuests: '+guests+'\\n\\n'+msg);
+        window.location.href = 'mailto:sailprettylucky@gmail.com?subject='+subject+'&body='+body;
+        status.textContent = 'Couldn’t reach our server — opened your email app instead. If nothing opened, email sailprettylucky@gmail.com.' + (email ? '' : ' (No email entered — your mail app will use your own address.)');
+        form.reset();
+      }
       return;
     });
   }

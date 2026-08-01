@@ -58,6 +58,29 @@ function resolveKey(env) {
   );
 }
 
+// Resolve the Telegram bot token + target chat id from env (set as Cloudflare secrets).
+function resolveTelegram(env) {
+  return {
+    token: env.TELEGRAM_BOT_TOKEN || env['telegram bot token'] || '',
+    chatId: env.TELEGRAM_CHAT_ID || env['telegram chat id'] || '',
+  };
+}
+
+async function sendTelegram(env, text) {
+  const { token, chatId } = resolveTelegram(env);
+  if (!token || !chatId) return false;
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
+    });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -68,7 +91,24 @@ export default {
 
     // Safe diagnostic: reports whether the key is configured WITHOUT exposing it.
     if (url.pathname === '/diag') {
-      return json({ ok: true, openrouter_key_set: Boolean(resolveKey(env)), model: MODEL });
+      const tg = resolveTelegram(env);
+      return json({ ok: true, openrouter_key_set: Boolean(resolveKey(env)), model: MODEL, telegram_set: Boolean(tg.token && tg.chatId) });
+    }
+
+    if (url.pathname === '/inquiry' && request.method === 'POST') {
+      let body;
+      try { body = await request.json(); } catch { return json({ error: 'bad json' }, 400); }
+      const lead = [
+        '*New Sail Pretty Lucky inquiry*',
+        `Name: ${body.name || '(none)'}`,
+        `Email: ${body.email || '(not provided)'}`,
+        `Start: ${body.start || '(open)'}`,
+        `Guests: ${body.guests || '(not specified)'}`,
+        '',
+        (body.message || '(no message)').slice(0, 1500),
+      ].join('\n');
+      const ok = await sendTelegram(env, lead);
+      return json({ ok, via: ok ? 'telegram' : 'email' });
     }
 
     if (request.method !== 'POST') {
@@ -118,3 +158,4 @@ export default {
     }
   },
 };
+
