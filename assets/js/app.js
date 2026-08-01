@@ -129,7 +129,7 @@
     var form = document.getElementById('plChatForm');
     var input = document.getElementById('plChatInput');
     // Worker URL (Cloudflare). The OpenRouter key lives ONLY in the Worker as a secret.
-    var CHAT_WORKER_URL = "https://prettylucky-chat.YOUR-SUBDOMAIN.workers.dev";
+    var CHAT_WORKER_URL = "https://prettyluckychat.ericbelcastle.workers.dev";
     var SESSION_ID = "pl-" + Date.now() + "-" + Math.random().toString(36).slice(2,7);
     var history = [];
 
