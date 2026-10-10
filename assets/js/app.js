@@ -20,6 +20,15 @@
     });
   }
 
+  /* ---- gallery images: reveal once loaded (adds .is-loaded) ---- */
+  document.querySelectorAll('.media-slot__img').forEach(function(img){
+    if (img.complete && img.naturalWidth > 0){ img.classList.add('is-loaded'); }
+    else {
+      img.addEventListener('load', function(){ img.classList.add('is-loaded'); });
+      img.addEventListener('error', function(){ img.classList.add('is-loaded'); });
+    }
+  });
+
   /* ---- media: play on hover/visible ---- */
   document.querySelectorAll('.media-slot__video').forEach(function(v){
     v.addEventListener('mouseenter', function(){ v.play().catch(function(){}); });
