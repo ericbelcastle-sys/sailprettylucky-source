@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /chat-worker/
+Disallow: /.tmp_attach/
+
+Sitemap: https://sailprettylucky.com/sitemap.xml
