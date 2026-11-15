@@ -2,13 +2,14 @@
    - mobile nav toggle
    - hover-to-play media slots (autoplay on visible when files present)
    - reservation calendar (owner toggle, persisted to localStorage)
-   - inquiry form (no backend — sends mailto or shows confirmation)
+   - inquiry form (posts to the Worker /inquiry endpoint, mailto fallback on error)
 */
 (function(){
   "use strict";
 
-  // Chat assistant: calls OpenRouter directly from the browser (no backend needed).
-  // Uses the free tencent/hy3 model. Key is in assets/js/chat-config.js.
+  // Cloudflare Worker URL, shared by the inquiry form (/inquiry) and the chat assistant.
+  // Declared at the top so both handlers can see it. The OpenRouter key lives ONLY in the Worker as a secret.
+  var CHAT_WORKER_URL = "https://prettyluckychat.ericbelcastle.workers.dev";
 
   /* ---- mobile nav ---- */
   var toggle = document.getElementById('navToggle');
@@ -21,7 +22,7 @@
   }
 
   /* ---- gallery images: reveal once loaded (adds .is-loaded) ---- */
-  document.querySelectorAll('.media-slot__img').forEach(function(img){
+  document.querySelectorAll('.media-slot__img, .pl-gallery__img').forEach(function(img){
     if (img.complete && img.naturalWidth > 0){ img.classList.add('is-loaded'); }
     else {
       img.addEventListener('load', function(){ img.classList.add('is-loaded'); });
@@ -110,7 +111,7 @@
         body: JSON.stringify({ name: name, email: email, start: start, guests: guests, message: msg })
       }).then(function(r){ return r.json(); }).then(function(d){
         if(d && d.ok){
-          status.textContent = '✅ Inquiry sent! Wendy will reply within 24 hours.';
+          status.textContent = '✅ Inquiry sent! We reply within 24 hours.';
           form.reset();
         } else {
           fallbackMailto();
@@ -119,7 +120,7 @@
 
       function fallbackMailto(){
         var subject = encodeURIComponent('SY Pretty Lucky charter inquiry — ' + (start || 'open dates'));
-        var body = encodeURIComponent('Name: '+name+'\\n'+(email ? 'Email: '+email+'\\n' : '')+'Start: '+start+'\\nGuests: '+guests+'\\n\\n'+msg);
+        var body = encodeURIComponent('Name: '+name+'\n'+(email ? 'Email: '+email+'\n' : '')+'Start: '+start+'\nGuests: '+guests+'\n\n'+msg);
         window.location.href = 'mailto:sailprettylucky@gmail.com?subject='+subject+'&body='+body;
         status.textContent = 'Couldn’t reach our server — opened your email app instead. If nothing opened, email sailprettylucky@gmail.com.' + (email ? '' : ' (No email entered — your mail app will use your own address.)');
         form.reset();
@@ -135,8 +136,6 @@
     var log = document.getElementById('plChatLog');
     var form = document.getElementById('plChatForm');
     var input = document.getElementById('plChatInput');
-    // Worker URL (Cloudflare). The OpenRouter key lives ONLY in the Worker as a secret.
-    var CHAT_WORKER_URL = "https://prettyluckychat.ericbelcastle.workers.dev";
     var SESSION_ID = "pl-" + Date.now() + "-" + Math.random().toString(36).slice(2,7);
     var history = [];
 
@@ -193,4 +192,149 @@
       });
     }
   })();
+
+  /* ---- tabbed gallery + lightbox ---- */
+  (function(){
+    var root = document.querySelector('[data-pl-gallery]');
+    var lightbox = document.getElementById('plLightbox');
+    if(!root || !lightbox) return;
+
+    var tabs = Array.prototype.slice.call(root.querySelectorAll('[role="tab"]'));
+    var panel = document.getElementById('gal-panel');
+    var items = Array.prototype.slice.call(root.querySelectorAll('.pl-gallery__item'));
+    var placeholders = Array.prototype.slice.call(root.querySelectorAll('.pl-gallery__placeholder'));
+    var imgEl = document.getElementById('plLightboxImg');
+    var capEl = document.getElementById('plLightboxCaption');
+    var countEl = document.getElementById('plLightboxCount');
+    var lastFocus = null;
+    var index = 0;
+    var touchX = 0;
+    var filter = 'all';
+
+    function visibleButtons(){
+      return items
+        .filter(function(item){ return !item.classList.contains('is-hidden'); })
+        .map(function(item){ return item.querySelector('.pl-gallery__btn'); })
+        .filter(Boolean);
+    }
+
+    function applyFilter(next){
+      filter = next;
+      items.forEach(function(item){
+        var show = (next === 'all' || item.getAttribute('data-category') === next);
+        item.classList.toggle('is-hidden', !show);
+      });
+      placeholders.forEach(function(ph){
+        var show = (next !== 'all' && ph.getAttribute('data-category') === next);
+        ph.classList.toggle('is-hidden', !show);
+        ph.hidden = !show;
+      });
+    }
+
+    function selectTab(tab, opts){
+      opts = opts || {};
+      tabs.forEach(function(t){
+        var on = t === tab;
+        t.classList.toggle('is-active', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        t.tabIndex = on ? 0 : -1;
+      });
+      if(panel) panel.setAttribute('aria-labelledby', tab.id);
+      applyFilter(tab.getAttribute('data-filter') || 'all');
+      if(opts.focus) tab.focus();
+    }
+
+    tabs.forEach(function(tab, i){
+      tab.tabIndex = tab.classList.contains('is-active') ? 0 : -1;
+      tab.addEventListener('click', function(){ selectTab(tab); });
+      tab.addEventListener('keydown', function(e){
+        var next = -1;
+        if(e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (i + 1) % tabs.length;
+        else if(e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (i - 1 + tabs.length) % tabs.length;
+        else if(e.key === 'Home') next = 0;
+        else if(e.key === 'End') next = tabs.length - 1;
+        if(next !== -1){
+          e.preventDefault();
+          selectTab(tabs[next], {focus:true});
+        }
+      });
+    });
+
+    applyFilter('all');
+
+    function setSlide(i, buttons){
+      buttons = buttons || visibleButtons();
+      if(!buttons.length) return;
+      index = (i + buttons.length) % buttons.length;
+      var btn = buttons[index];
+      var src = btn.getAttribute('data-src');
+      var caption = btn.getAttribute('data-caption') || '';
+      var thumb = btn.querySelector('img');
+      imgEl.src = src;
+      imgEl.alt = (thumb && thumb.alt) || caption;
+      capEl.textContent = caption;
+      countEl.textContent = (index + 1) + ' / ' + buttons.length;
+    }
+
+    function openAt(btn){
+      var buttons = visibleButtons();
+      var i = buttons.indexOf(btn);
+      if(i < 0) return;
+      lastFocus = document.activeElement;
+      setSlide(i, buttons);
+      lightbox.hidden = false;
+      document.body.style.overflow = 'hidden';
+      var closeBtn = lightbox.querySelector('.pl-lightbox__close');
+      if(closeBtn) closeBtn.focus();
+    }
+
+    function close(){
+      if(lightbox.hidden) return;
+      lightbox.hidden = true;
+      document.body.style.overflow = '';
+      imgEl.removeAttribute('src');
+      if(lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+    }
+
+    function prev(){ setSlide(index - 1); }
+    function next(){ setSlide(index + 1); }
+
+    items.forEach(function(item){
+      var btn = item.querySelector('.pl-gallery__btn');
+      if(btn) btn.addEventListener('click', function(){ openAt(btn); });
+    });
+
+    lightbox.addEventListener('click', function(e){
+      if(e.target.hasAttribute('data-lightbox-close')) close();
+    });
+    var prevBtn = lightbox.querySelector('[data-lightbox-prev]');
+    var nextBtn = lightbox.querySelector('[data-lightbox-next]');
+    if(prevBtn) prevBtn.addEventListener('click', function(e){ e.stopPropagation(); prev(); });
+    if(nextBtn) nextBtn.addEventListener('click', function(e){ e.stopPropagation(); next(); });
+
+    document.addEventListener('keydown', function(e){
+      if(lightbox.hidden) return;
+      if(e.key === 'Escape'){ e.preventDefault(); close(); }
+      else if(e.key === 'ArrowLeft'){ e.preventDefault(); prev(); }
+      else if(e.key === 'ArrowRight'){ e.preventDefault(); next(); }
+      else if(e.key === 'Tab'){
+        var focusable = lightbox.querySelectorAll('button:not([hidden])');
+        if(!focusable.length) return;
+        var first = focusable[0];
+        var last = focusable[focusable.length - 1];
+        if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+        else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+      }
+    });
+
+    lightbox.addEventListener('touchstart', function(e){
+      if(e.changedTouches && e.changedTouches[0]) touchX = e.changedTouches[0].clientX;
+    }, {passive:true});
+    lightbox.addEventListener('touchend', function(e){
+      if(!e.changedTouches || !e.changedTouches[0] || lightbox.hidden) return;
+      var dx = e.changedTouches[0].clientX - touchX;
+      if(Math.abs(dx) > 40){ if(dx < 0) next(); else prev(); }
+    }, {passive:true});
+  })();
+
 })();
