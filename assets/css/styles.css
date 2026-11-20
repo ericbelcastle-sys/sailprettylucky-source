@@ -288,3 +288,27 @@ h2{font-size:clamp(26px,4vw,40px);letter-spacing:.5px;margin-bottom:14px;text-al
   .chat__panel{width:calc(100vw - 28px);right:-8px}
 }
 @media(prefers-reduced-motion:reduce){.media-slot__img{animation:none;opacity:1}}
+
+/* SOCIAL + FOLLOW */
+.nav__end{display:flex;align-items:center;gap:14px;margin-left:18px}
+.social-links{display:flex;align-items:center;gap:8px}
+.social-icon{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;color:var(--gold2);border-radius:50%;border:1px solid rgba(227,201,143,.4);text-decoration:none;transition:background .2s,color .2s,border-color .2s}
+.social-icon:hover{background:var(--gold);color:#10212b;border-color:var(--gold)}
+.social-icon:focus-visible{outline:2px solid var(--gold2);outline-offset:3px}
+.social-icon svg{display:block}
+.follow{text-align:center}
+.follow .lead{margin-bottom:28px}
+.follow__buttons{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.follow__buttons .btn{display:inline-flex;align-items:center;gap:10px}
+.follow__buttons .btn svg{display:block;width:18px;height:18px}
+.btn--outline{border:1px solid var(--ink);color:var(--ink);background:transparent}
+.btn--outline:hover{background:var(--ink);color:#fff;transform:translateY(-2px)}
+.footer .social-links{margin-left:auto}
+.footer .container{padding-right:100px}
+@media(max-width:720px){
+  .nav__end{margin-left:auto;gap:10px}
+  .nav__end .nav__links{margin-left:0}
+  .follow__buttons .btn{padding:12px 22px}
+  .footer{padding-bottom:28px}
+  .footer .container{padding-right:86px}
+}
